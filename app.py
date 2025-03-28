@@ -1,11 +1,13 @@
+import streamlit as st
+
 # 修正前 (Colab用)
 # GOOGLE_API_KEY = userdata.get('GOOGLE_API_KEY')
 # OPENAI_API_KEY = userdata.get('marutonars')
 
 # 修正後 (Streamlit Community Cloud用)
 try:
-    GOOGLE_API_KEY = secrets["GOOGLE_API_KEY"]
-    OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
+    GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     if not GOOGLE_API_KEY or not OPENAI_API_KEY:
         st.error("エラー: Streamlit CloudのSecretsにAPIキーが設定されていません。")
         st.stop()
