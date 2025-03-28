@@ -101,7 +101,7 @@ if secrets_ok:
         # --- この関数の中身は前回と同じ (Gemini Text を使う) ---
         try:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
+            model = genai.GenerativeModel('gemini-2.0-pro-exp')
             # ▼▼▼ 改善版の指示 ▼▼▼
             prompt_generation_prompt = f"""
             You are an expert prompt engineer for the DALL-E 3 image generation model.
