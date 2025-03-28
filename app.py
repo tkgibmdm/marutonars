@@ -1,15 +1,16 @@
 import streamlit as st
-# --- 他のライブラリ ---
-# (エラー箇所特定のため、一旦API連携に必要なライブラリは後でimportするか、
-#  Try-Exceptで囲むなど、エラー箇所を限定しやすくするのも手です)
+
+# ▼▼▼ set_page_config をここに移動 ▼▼▼
+st.set_page_config(page_title="AIバナーラフ生成", layout="wide")
+# ▲▲▲ set_page_config をここに移動 ▲▲▲
+
+# --- 他のライブラリ import (ここでもOK) ---
 # import google.generativeai as genai
-# from openai import OpenAI
-# import requests
-# from PIL import Image
-# from io import BytesIO
-import time # デバッグやスピナーデモ用
+# ...
 
 st.write("DEBUG: Script started. Importing libraries...") # Debug 0
+st.write("DEBUG: Attempting to load secrets...") # Debug 1
+# ... (以下、Secrets読み込み処理) ...
 
 # --- APIキー読み込み ---
 st.write("DEBUG: Attempting to load secrets...") # Debug 1
@@ -130,7 +131,7 @@ if secrets_ok:
             return None
 
     # --- Streamlit App Main UI ---
-    st.set_page_config(page_title="AIバナーラフ生成", layout="wide")
+
     st.title("🤖 AIバナーラフ生成プロトタイプ")
     st.write("構成案の画像とテキスト指示から、AIがバナーラフ画像を生成します。")
     st.write("--- Debug Info ---")
