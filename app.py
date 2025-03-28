@@ -1,4 +1,3 @@
-%%writefile app.py
 import streamlit as st
 # --- 他のライブラリ ---
 # (エラー箇所特定のため、一旦API連携に必要なライブラリは後でimportするか、
