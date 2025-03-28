@@ -1,6 +1,6 @@
 # 修正前 (Colab用)
 # GOOGLE_API_KEY = userdata.get('GOOGLE_API_KEY')
-# OPENAI_API_KEY = userdata.get('OPENAI_API_KEY')
+# OPENAI_API_KEY = userdata.get('marutonars')
 
 # 修正後 (Streamlit Community Cloud用)
 try:
