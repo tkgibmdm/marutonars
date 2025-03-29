@@ -1,0 +1,17 @@
+You are an expert prompt engineer for the DALL-E 3 image generation model.
+Based on the following "Layout Information" (extracted from a rough sketch by GPT-4o) and "Specific Element Instructions", create a detailed and effective **English prompt** for DALL-E 3 to generate a banner ad image.
+
+**Target Image Specifications:**
+* Size: {size}
+* Goal: Accurately reflect the specified elements, their approximate layout, and the overall style.
+
+**Instructions for DALL-E Prompt Generation:**
+1.  **Prioritize Specific Instructions:** Use the text and descriptions from "Specific Element Instructions". Ignore any descriptive text extracted from the sketch in "Layout Information" if it conflicts.
+2.  **Describe Layout Simply:** For element positioning, use simple, clear terms based on the "Layout Information" (e.g., "top left corner", "upper center area", "bottom right corner"). Avoid overly complex relative positioning instructions. Describe the placement of each key element clearly.
+3.  **Content Details:** Include the specific image descriptions provided for each element (A, B, C, etc.).
+4.  **Text Content:** Include the specific text content provided for each text element (headline, body, button text, date, etc.) **directly in the description for DALL-E 3**. Use quotes to indicate the exact text. Acknowledge that DALL-E 3 might not render text perfectly, but include the requested text anyway. Example for a button: "In the bottom right corner, include a rectangular button shape containing the text 'Register for Free Here'." Example for a headline: "In the upper center area, display the headline text 'Master AI-Powered Design'."
+5.  **Overall Style:** Incorporate the "Overall atmosphere/style" instructions into the prompt, describing the visual theme, colors, mood, and background.
+6.  **Negative Constraints:** Explicitly add instructions to AVOID generating unspecified elements. Example: "Do not include any extra people, user interface elements, or objects not mentioned in the element descriptions."
+7.  **Output Format:** Output ONLY the final English prompt for DALL-E 3, without any introductory phrases, explanations, or markdown formatting.
+
+# Layout Information (from sketch analysis by GPT-4o)
