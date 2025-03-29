@@ -26,31 +26,28 @@ def load_prompt(file_path):
         return None
 
 # --- Load Prompts from Files ---
-# (GitHubリポジトリのルートに 'prompts' フォルダがあり、その中にファイルがあると想定)
 layout_analysis_prompt_text = load_prompt("prompts/layout_analysis_prompt.txt")
 dalle_instruction_template_text = load_prompt("prompts/dalle_prompt_instruction_template.txt")
 prompts_loaded = layout_analysis_prompt_text is not None and dalle_instruction_template_text is not None
 
 # --- Load API Keys ---
 secrets_ok = False
-if prompts_loaded: # プロンプトが正常に読み込めたら次に進む
+if prompts_loaded:
     try:
-        # GOOGLE_API_KEY は現在使わないが、Secrets設定はそのまま読み込み確認
-        GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
-        OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"] # こちらを主に使用
+        GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"] # Loaded but not used
+        OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
         if not GOOGLE_API_KEY or not OPENAI_API_KEY:
             st.error("エラー: Streamlit CloudのSecretsに必要なAPIキーが設定されていないか、値が空です。(GOOGLE_API_KEY, OPENAI_API_KEY)")
             st.stop()
         secrets_ok = True
     except KeyError as e:
-        st.error(f"エラー: Streamlit CloudのSecretsにキー '{e}' が見つかりません。名前が正しいか確認してください。")
+        st.error(f"エラー: Streamlit CloudのSecretsにキー '{e}' が見つかりません。")
         st.stop()
     except Exception as e:
-         st.error(f"Secrets読み込み中に予期せぬエラーが発生しました: {e}")
+         st.error(f"Secrets読み込み中に予期せぬエラー: {e}")
          st.stop()
 
 # --- API Function Definitions ---
-# (APIキーとプロンプトが正常に読み込めた場合のみ定義・実行)
 if secrets_ok and prompts_loaded:
 
     # ▼▼▼ GPT-4o (Vision) でレイアウト解析 ▼▼▼
@@ -64,18 +61,13 @@ if secrets_ok and prompts_loaded:
             client = OpenAI(api_key=api_key)
             base64_image = base64.b64encode(image_bytes).decode('utf-8')
             try:
-                img_format = Image.open(BytesIO(image_bytes)).format
+                img = Image.open(BytesIO(image_bytes))
+                img_format = img.format
                 if img_format == 'PNG': mime_type = "image/png"
                 elif img_format in ['JPEG', 'JPG']: mime_type = "image/jpeg"
-                else: mime_type = "image/jpeg"
+                else: mime_type = "image/jpeg" # Fallback
             except Exception: mime_type = "image/jpeg"
-
-            prompt_messages = [
-                {"role": "user", "content": [
-                    {"type": "text", "text": layout_prompt_text}, # ファイルから読み込んだプロンプトを使用
-                    {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{base64_image}"}}
-                ]}
-            ]
+            prompt_messages = [{"role": "user", "content": [{"type": "text", "text": layout_prompt_text}, {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{base64_image}"}}]}]
             response = client.chat.completions.create(model="gpt-4o", messages=prompt_messages, max_tokens=1000)
             if response.choices and response.choices[0].message.content:
                 return response.choices[0].message.content.strip()
@@ -135,8 +127,9 @@ if secrets_ok and prompts_loaded:
 
     col1, col2 = st.columns(2)
     with col1:
-        # フォーム (clear_on_submit はデバッグのため一旦外したままにします)
-        with st.form("input_form"): # clear_on_submit=True は必要に応じて後で戻してください
+        # ▼▼▼ デバッグのため clear_on_submit=True は削除した状態 ▼▼▼
+        with st.form("input_form"):
+        # ▲▲▲ デバッグのため clear_on_submit=True は削除した状態 ▲▲▲
             st.subheader("1. 構成案のアップロード")
             uploaded_file = st.file_uploader("構成案の画像ファイル (JPG, PNG) を選択してください", type=["png", "jpg", "jpeg"])
             st.subheader("2. テキスト指示")
@@ -149,26 +142,25 @@ if secrets_ok and prompts_loaded:
         # 画像プレビュー
         if uploaded_file is not None:
              try:
-                 # Note: State might be lost on rerun, preview might vanish after generation if form isn't clearing
-                 image = Image.open(uploaded_file)
-                 st.image(image, caption='アップロードされた構成案', use_column_width=True)
+                 # Read image for preview display
+                 image_preview = Image.open(uploaded_file)
+                 st.image(image_preview, caption='アップロードされた構成案', use_column_width=True)
              except Exception as e:
-                 # Don't show error if file is simply gone after form logic/rerun
-                 # st.error(f"画像プレビューエラー: {e}")
-                 pass
+                 st.error(f"画像プレビューエラー: {e}")
 
 
-    # --- ボタンが押された後の処理 (Corrected Calls) ---
+    # --- ボタンが押された後の処理 ---
     if generate_button:
-        # Make sure file is still available (might need state management if form clearing is re-enabled)
+        # Check inputs again, as form state might be tricky without clear_on_submit sometimes
         if uploaded_file is not None and details_text:
-            # Get file bytes *before* potential rerun wipes the state
+            # It's better to get file bytes immediately after check
             layout_image_bytes = uploaded_file.getvalue()
+
             with col2:
                 st.subheader("⚙️ 生成プロセス")
                 with st.spinner('AIが画像を生成中です... (GPT-4o x2 + DALL-E 3)'):
 
-                    # --- Step 1: レイアウト解析 (修正済み呼び出し) ---
+                    # ▼▼▼ Step 1: レイアウト解析 (修正済み呼び出し) ▼▼▼
                     st.info("Step 1/3: 構成案画像を解析中 (GPT-4o Vision)...")
                     # ★★★ layout_analysis_prompt_text を引数として渡す ★★★
                     layout_info = analyze_layout_with_gpt4o(layout_image_bytes, OPENAI_API_KEY, layout_analysis_prompt_text)
@@ -176,31 +168,47 @@ if secrets_ok and prompts_loaded:
                     if layout_info:
                         with st.expander("レイアウト解析結果 (GPT-4o)", expanded=False): st.text(layout_info)
 
-                        # --- Step 2: DALL-E プロンプト生成 (修正済み呼び出し) ---
+                        # ▼▼▼ デバッグプリント追加 ▼▼▼
+                        st.write("--- DEBUG INFO for Step 2 ---")
+                        st.write(f"Layout Info Provided (type: {type(layout_info)}):")
+                        st.text(f"{layout_info[:500]}...") # Show partial layout info
+                        st.write(f"Impression Text Provided (type: {type(impression_text)}): {impression_text}")
+                        st.write(f"Details Text Provided (type: {type(details_text)}, empty: {not details_text}):")
+                        st.text(f"{details_text[:500]}...") # Show partial details
+                        st.write(f"DALL-E Size Provided: {dalle_size}")
+                        st.write("--- END DEBUG INFO ---")
+                        # ▲▲▲ デバッグプリント追加 ▲▲▲
+
+                        # ▼▼▼ Step 2: DALL-E プロンプト生成 (修正済み呼び出し) ▼▼▼
                         st.info("Step 2/3: DALL-E 3用プロンプトを生成中 (GPT-4o Text)...")
                         # ★★★ dalle_instruction_template_text を引数として渡す ★★★
                         dalle_prompt = generate_dalle_prompt_with_gpt4o(layout_info, impression_text, details_text, dalle_size, OPENAI_API_KEY, dalle_instruction_template_text)
 
                         if dalle_prompt:
+                             # Check if dalle_prompt contains the "I'm sorry..." message
+                             if "I'm sorry, but I need the specific" in dalle_prompt or "sorry" in dalle_prompt.lower(): # Make check more robust
+                                  st.error("GPT-4oがプロンプト生成に必要な情報を得られなかったか、処理を拒否したようです。（上記DEBUG INFOを確認してください）")
                              with st.expander("生成されたDALL-Eプロンプト (GPT-4o)", expanded=True): st.text(dalle_prompt)
 
-                             # --- Step 3: 画像生成 (変更なし) ---
-                             st.info("Step 3/3: 画像を生成中 (DALL-E 3)...")
-                             image_url = generate_image_with_dalle3(dalle_prompt, dalle_size, OPENAI_API_KEY)
+                             # Only proceed if prompt generation didn't seem to fail
+                             if "sorry" not in dalle_prompt.lower():
+                                 # ▼▼▼ Step 3: 画像生成 (変更なし) ▼▼▼
+                                 st.info("Step 3/3: 画像を生成中 (DALL-E 3)...")
+                                 image_url = generate_image_with_dalle3(dalle_prompt, dalle_size, OPENAI_API_KEY)
 
-                             if image_url:
-                                  st.success("🎉 画像生成が完了しました！")
-                                  st.subheader("生成されたラフ画像")
-                                  # Step 4: 画像表示
-                                  try:
-                                       image_response = requests.get(image_url); image_response.raise_for_status()
-                                       img_data = image_response.content; st.image(img_data, caption='生成されたラフ画像', use_column_width=True)
-                                       st.balloons()
-                                  except Exception as download_e:
-                                       st.error(f"画像ダウンロード/表示エラー: {download_e}"); st.write(f"画像URL: {image_url}")
+                                 if image_url:
+                                      st.success("🎉 画像生成が完了しました！")
+                                      st.subheader("生成されたラフ画像")
+                                      # Step 4: 画像表示
+                                      try:
+                                           image_response = requests.get(image_url); image_response.raise_for_status()
+                                           img_data = image_response.content; st.image(img_data, caption='生成されたラフ画像', use_column_width=True)
+                                           st.balloons()
+                                      except Exception as download_e:
+                                           st.error(f"画像ダウンロード/表示エラー: {download_e}"); st.write(f"画像URL: {image_url}")
         else:
-            # Show warning within the main column if inputs are missing on submit
-             with col1:
+            # Display warning inside the main column if inputs are missing on submit
+            with col1:
                 st.warning("👈 画像のアップロードと詳細指示を入力してからボタンを押してください。")
 
 # --- Error handling for failed prompt/secret loading ---
