@@ -149,36 +149,42 @@ if secrets_ok and prompts_loaded:
         # 画像プレビュー
         if uploaded_file is not None:
              try:
+                 # Note: State might be lost on rerun, preview might vanish after generation if form isn't clearing
                  image = Image.open(uploaded_file)
                  st.image(image, caption='アップロードされた構成案', use_column_width=True)
              except Exception as e:
-                 st.error(f"画像プレビューエラー: {e}")
+                 # Don't show error if file is simply gone after form logic/rerun
+                 # st.error(f"画像プレビューエラー: {e}")
+                 pass
 
 
-    # --- ボタンが押された後の処理 ---
+    # --- ボタンが押された後の処理 (Corrected Calls) ---
     if generate_button:
+        # Make sure file is still available (might need state management if form clearing is re-enabled)
         if uploaded_file is not None and details_text:
-            # If clear_on_submit=False, uploaded_file should be accessible here
+            # Get file bytes *before* potential rerun wipes the state
             layout_image_bytes = uploaded_file.getvalue()
             with col2:
                 st.subheader("⚙️ 生成プロセス")
                 with st.spinner('AIが画像を生成中です... (GPT-4o x2 + DALL-E 3)'):
 
-                    # ▼▼▼ Step 1: レイアウト解析 (修正済み呼び出し) ▼▼▼
+                    # --- Step 1: レイアウト解析 (修正済み呼び出し) ---
                     st.info("Step 1/3: 構成案画像を解析中 (GPT-4o Vision)...")
+                    # ★★★ layout_analysis_prompt_text を引数として渡す ★★★
                     layout_info = analyze_layout_with_gpt4o(layout_image_bytes, OPENAI_API_KEY, layout_analysis_prompt_text)
 
                     if layout_info:
                         with st.expander("レイアウト解析結果 (GPT-4o)", expanded=False): st.text(layout_info)
 
-                        # ▼▼▼ Step 2: DALL-E プロンプト生成 (修正済み呼び出し) ▼▼▼
+                        # --- Step 2: DALL-E プロンプト生成 (修正済み呼び出し) ---
                         st.info("Step 2/3: DALL-E 3用プロンプトを生成中 (GPT-4o Text)...")
+                        # ★★★ dalle_instruction_template_text を引数として渡す ★★★
                         dalle_prompt = generate_dalle_prompt_with_gpt4o(layout_info, impression_text, details_text, dalle_size, OPENAI_API_KEY, dalle_instruction_template_text)
 
                         if dalle_prompt:
                              with st.expander("生成されたDALL-Eプロンプト (GPT-4o)", expanded=True): st.text(dalle_prompt)
 
-                             # ▼▼▼ Step 3: 画像生成 (変更なし) ▼▼▼
+                             # --- Step 3: 画像生成 (変更なし) ---
                              st.info("Step 3/3: 画像を生成中 (DALL-E 3)...")
                              image_url = generate_image_with_dalle3(dalle_prompt, dalle_size, OPENAI_API_KEY)
 
@@ -193,10 +199,12 @@ if secrets_ok and prompts_loaded:
                                   except Exception as download_e:
                                        st.error(f"画像ダウンロード/表示エラー: {download_e}"); st.write(f"画像URL: {image_url}")
         else:
-            st.warning("👈 画像アップロードと詳細指示を入力してください。")
+            # Show warning within the main column if inputs are missing on submit
+             with col1:
+                st.warning("👈 画像のアップロードと詳細指示を入力してからボタンを押してください。")
 
-# --- エラー処理 (プロンプト/Secrets読み込み失敗時) ---
+# --- Error handling for failed prompt/secret loading ---
 elif not prompts_loaded:
      st.error("プロンプトファイルの読み込みに失敗したため、アプリを起動できません。GitHubリポジトリ内の 'prompts' フォルダとファイルを確認してください。")
 elif not secrets_ok:
-     st.warning("アプリの初期化中にSecrets関連で問題が発生したため、UIを表示できません。")
+     st.warning("アプリの初期化中にSecrets関連で問題が発生したため、UIを表示できません。ログやSecrets設定を確認してください。")
