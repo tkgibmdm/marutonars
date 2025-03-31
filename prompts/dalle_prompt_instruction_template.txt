@@ -1,7 +1,11 @@
-Based on the layout information and element details below, write a simple English prompt for the DALL-E 3 image generator to create a {size} banner ad. Include the main elements and the overall style: {impression}.
+Create a {size} banner ad wireframe, accurately replicating the layout and elements depicted in a separately provided hand-drawn rough sketch. The overall style should be {impression}.
 
-Layout:
+Based on the analysis of the provided sketch:
+
+Layout Information:
 {layout_info}
 
-Details:
+Element Details:
 {details}
+
+Render the wireframe using clear, simple lines for all shapes and any identified text elements. Maintain the relative positions, proportions, and arrangement of elements exactly as shown in the sketch analysis. The background should be plain white or a neutral tone suitable for a wireframe. The primary goal is the faithful reproduction of the provided sketch's structure and composition.
