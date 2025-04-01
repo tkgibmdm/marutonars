@@ -54,7 +54,6 @@ if prompts_loaded: # プロンプトが正常に読み込めたら次に進む
 if secrets_ok and prompts_loaded:
 
     # ▼▼▼ GPT-4o (Vision) でレイアウト解析 ▼▼▼
-    # 引数に layout_prompt_text を追加
     def analyze_layout_with_gpt4o(image_bytes, api_key, layout_prompt_text):
         """OpenAI GPT-4o APIを呼び出し、レイアウト情報を抽出する関数"""
         if not layout_prompt_text:
@@ -69,7 +68,6 @@ if secrets_ok and prompts_loaded:
                 img_format = img.format
                 if img_format == 'PNG': mime_type = "image/png"
                 elif img_format in ['JPEG', 'JPG']: mime_type = "image/jpeg"
-                # 他のフォーマットも必要に応じて追加 (GIFなど)
                 else: mime_type = "image/jpeg" # デフォルト
             except Exception:
                 mime_type = "image/jpeg" # 判定失敗時のデフォルト
@@ -92,7 +90,6 @@ if secrets_ok and prompts_loaded:
     # ▲▲▲ GPT-4o (Vision) でレイアウト解析 ▲▲▲
 
     # ▼▼▼ GPT-4o (Text) でDALL-Eプロンプト生成 ▼▼▼
-    # 引数に dalle_instruction_template_text を追加
     def generate_dalle_prompt_with_gpt4o(layout_info, impression, details, size, api_key, dalle_instruction_template_text):
         """OpenAI GPT-4o APIを呼び出し、DALL-E 3用プロンプトを生成する関数 (テキスト直接描画試行)"""
         if not dalle_instruction_template_text:
@@ -101,7 +98,6 @@ if secrets_ok and prompts_loaded:
         try:
             client = OpenAI(api_key=api_key)
             # --- テンプレートに動的な値を埋め込む ---
-            # .txtファイルの内容（テンプレート）に .format() を適用
             prompt_generation_instruction = dalle_instruction_template_text.format(
                 size=size, layout_info=layout_info, impression=impression, details=details
             )
@@ -138,34 +134,20 @@ if secrets_ok and prompts_loaded:
     def add_text_to_image(image, text, position, font_path, font_size, text_color=(0, 0, 0, 255)):
         """Pillowを使って画像にテキストを描画する関数"""
         try:
-            # 画像をRGBAモードに変換 (アルファチャンネルを扱えるように)
             base = image.convert("RGBA")
-            # テキスト描画用のレイヤーを作成 (透明)
             txt_layer = Image.new("RGBA", base.size, (255, 255, 255, 0))
-
-            # フォントを読み込む
             try:
                 font = ImageFont.truetype(font_path, font_size)
             except IOError:
                 st.error(f"エラー: 指定されたフォントファイルが見つからないか、読み込めません: {font_path}")
-                return None # フォント読み込み失敗
+                return None
             except Exception as font_e:
                  st.error(f"フォント読み込み中に予期せぬエラー: {font_e}")
                  return None
-
-
-            # 描画オブジェクトを作成
             draw = ImageDraw.Draw(txt_layer)
-
-            # 指定された位置にテキストを描画
-            # textbbox は Pillow 9.2.0 以降で利用可能
-            # draw.textbbox(position, text, font=font) # テキストの描画範囲を取得する場合
             draw.text(position, text, font=font, fill=text_color)
-
-            # 元の画像にテキストレイヤーを合成
             out = Image.alpha_composite(base, txt_layer)
-            return out.convert("RGB") # 必要に応じてRGBに戻す (アルファ不要な場合)
-
+            return out.convert("RGB")
         except Exception as e:
             st.error(f"テキスト描画中にエラーが発生しました: {e}")
             return None
@@ -175,16 +157,54 @@ if secrets_ok and prompts_loaded:
     st.title("🤖 AIバナーラフ生成プロトタイプ (GPT-4o Ver.)")
     st.write("構成案の画像とテキスト指示から、AIがバナーラフ画像を生成します。")
 
-    # --- Task 2.2: テキスト描画テスト用コード ---
-    # (このテストコードは、次のステップで追加・実行します)
-    # st.divider()
-    # st.subheader("【Task 2.2: テキスト描画テスト】")
-    # if st.button("テスト実行: 日本語描画"):
-    #    # ... (テストコード) ...
-    # st.divider()
-    # --- Task 2.2: ここまで ---
+    # ▼▼▼ Task 2.2: テキスト描画テスト用コード ▼▼▼
+    st.divider() # 区切り線
+    st.subheader("【Task 2.2: テキスト描画テスト】")
+    if st.button("テスト実行: 日本語描画"):
+        # 1. テスト用の背景画像を作成 (例: 600x150 白背景)
+        test_bg_width = 600
+        test_bg_height = 150
+        try:
+            test_background = Image.new('RGB', (test_bg_width, test_bg_height), color = (255, 255, 255)) # 白背景
+
+            # 2. 描画するテキストと設定
+            test_text = "これは日本語描画テストです。\nフォントは Noto Sans JP Regular を使用。"
+            # ★ GitHubリポジトリの fonts フォルダ内のフォントファイル名を指定
+            font_file_path = "fonts/NotoSansJP-Regular.ttf"
+            font_size = 30
+            text_position = (20, 20) # 左上からの座標 (x, y)
+            text_color = (0, 0, 0, 255) # 黒色 (RGBA)
+
+            st.write(f"使用フォント: {font_file_path}")
+            st.write(f"フォントサイズ: {font_size}")
+            st.write(f"描画テキスト: {test_text}")
+
+            # 3. テキスト描画関数を呼び出す
+            image_with_text = add_text_to_image(
+                image=test_background,
+                text=test_text,
+                position=text_position,
+                font_path=font_file_path,
+                font_size=font_size,
+                text_color=text_color
+            )
+
+            # 4. 結果を表示
+            if image_with_text:
+                st.image(image_with_text, caption="テキスト描画テスト結果")
+                st.success("テキスト描画テスト成功！フォントが見つかり、描画できました。")
+            else:
+                # エラーメッセージは add_text_to_image 関数内で st.error で表示されるはず
+                st.error("テキスト描画テスト中にエラーが発生しました。詳細は上記のエラーメッセージを確認してください。")
+
+        except Exception as test_e:
+             st.error(f"テストコード実行中に予期せぬエラー: {test_e}")
+
+    st.divider() # 区切り線
+    # ▲▲▲ Task 2.2: テキスト描画テスト用コード ここまで ▲▲▲
 
 
+    # --- ここから下はメインのUI定義 (col1, col2 = ...) ---
     col1, col2 = st.columns(2)
     with col1:
         # フォーム (clear_on_submit はデバッグのため一旦外したままにします)
@@ -201,54 +221,39 @@ if secrets_ok and prompts_loaded:
         # 画像プレビュー
         if uploaded_file is not None:
              try:
-                 # Read image for preview display
                  image_preview = Image.open(uploaded_file)
                  st.image(image_preview, caption='アップロードされた構成案', use_column_width=True)
              except Exception as e:
-                 # エラーが出てもプレビューは止めない
-                 # st.error(f"画像プレビューエラー: {e}")
                  pass
 
 
     # --- ボタンが押された後の処理 (Corrected Calls) ---
     if generate_button:
-        # Check inputs again
         if uploaded_file is not None and details_text:
-            # Get file bytes immediately after button press
             layout_image_bytes = uploaded_file.getvalue()
             with col2:
                 st.subheader("⚙️ 生成プロセス")
                 with st.spinner('AIが画像を生成中です... (GPT-4o x2 + DALL-E 3)'):
-
-                    # --- Step 1: レイアウト解析 (修正済み呼び出し) ---
+                    # Step 1: レイアウト解析
                     st.info("Step 1/3: 構成案画像を解析中 (GPT-4o Vision)...")
-                    # ★★★ layout_analysis_prompt_text を引数として渡す ★★★
                     layout_info = analyze_layout_with_gpt4o(layout_image_bytes, OPENAI_API_KEY, layout_analysis_prompt_text)
-
                     if layout_info:
                         with st.expander("レイアウト解析結果 (GPT-4o)", expanded=False): st.text(layout_info)
-
-                        # --- Step 2: DALL-E プロンプト生成 (修正済み呼び出し) ---
+                        # Step 2: DALL-E プロンプト生成
                         st.info("Step 2/3: DALL-E 3用プロンプトを生成中 (GPT-4o Text)...")
-                        # ★★★ dalle_instruction_template_text を引数として渡す ★★★
                         dalle_prompt = generate_dalle_prompt_with_gpt4o(layout_info, impression_text, details_text, dalle_size, OPENAI_API_KEY, dalle_instruction_template_text)
-
                         if dalle_prompt:
-                             # Check if dalle_prompt indicates failure
                              if "sorry" in dalle_prompt.lower():
-                                  st.error("GPT-4oがプロンプト生成に必要な情報を得られなかったか、処理を拒否したようです。")
+                                  st.error("GPT-4oプロンプト生成失敗")
                              with st.expander("生成されたDALL-Eプロンプト (GPT-4o)", expanded=True): st.text(dalle_prompt)
-
-                             # Only proceed if prompt generation seems successful
                              if "sorry" not in dalle_prompt.lower():
-                                 # --- Step 3: 画像生成 (変更なし) ---
+                                 # Step 3: 画像生成
                                  st.info("Step 3/3: 画像を生成中 (DALL-E 3)...")
                                  image_url = generate_image_with_dalle3(dalle_prompt, dalle_size, OPENAI_API_KEY)
-
                                  if image_url:
                                       st.success("🎉 画像生成が完了しました！")
                                       st.subheader("生成されたラフ画像")
-                                      # --- Step 4: 画像表示 ---
+                                      # Step 4: 画像表示
                                       try:
                                            image_response = requests.get(image_url); image_response.raise_for_status()
                                            img_data = image_response.content
@@ -259,13 +264,12 @@ if secrets_ok and prompts_loaded:
                                       except Exception as download_e:
                                            st.error(f"画像ダウンロード/表示エラー: {download_e}"); st.write(f"画像URL: {image_url}")
         else:
-            # Show warning inside the main column if inputs are missing on submit
              with col1:
-                st.warning("👈 画像のアップロードと詳細指示を入力してからボタンを押してください。")
+                st.warning("👈 画像アップロードと詳細指示を入力してください。")
 
 # --- Error handling for failed prompt/secret loading ---
 elif not prompts_loaded:
-     st.error("プロンプトファイルの読み込みに失敗したため、アプリを起動できません。GitHubリポジトリ内の 'prompts' フォルダとファイルを確認してください。")
+     st.error("プロンプトファイルの読み込みに失敗。 'prompts' フォルダとファイルを確認してください。")
 elif not secrets_ok:
-     st.warning("アプリの初期化中にSecrets関連で問題が発生したため、UIを表示できません。ログやSecrets設定を確認してください。")
+     st.warning("Secrets関連で問題発生。")
 
