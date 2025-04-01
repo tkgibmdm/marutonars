@@ -138,17 +138,34 @@ if secrets_ok and prompts_loaded:
     def add_text_to_image(image, text, position, font_path, font_size, text_color=(0, 0, 0, 255)):
         """Pillowを使って画像にテキストを描画する関数"""
         try:
+            # 画像をRGBAモードに変換 (アルファチャンネルを扱えるように)
             base = image.convert("RGBA")
+            # テキスト描画用のレイヤーを作成 (透明)
             txt_layer = Image.new("RGBA", base.size, (255, 255, 255, 0))
+
+            # フォントを読み込む
             try:
                 font = ImageFont.truetype(font_path, font_size)
             except IOError:
                 st.error(f"エラー: 指定されたフォントファイルが見つからないか、読み込めません: {font_path}")
                 return None # フォント読み込み失敗
+            except Exception as font_e:
+                 st.error(f"フォント読み込み中に予期せぬエラー: {font_e}")
+                 return None
+
+
+            # 描画オブジェクトを作成
             draw = ImageDraw.Draw(txt_layer)
+
+            # 指定された位置にテキストを描画
+            # textbbox は Pillow 9.2.0 以降で利用可能
+            # draw.textbbox(position, text, font=font) # テキストの描画範囲を取得する場合
             draw.text(position, text, font=font, fill=text_color)
+
+            # 元の画像にテキストレイヤーを合成
             out = Image.alpha_composite(base, txt_layer)
-            return out.convert("RGB") # RGBで返す
+            return out.convert("RGB") # 必要に応じてRGBに戻す (アルファ不要な場合)
+
         except Exception as e:
             st.error(f"テキスト描画中にエラーが発生しました: {e}")
             return None
@@ -157,6 +174,16 @@ if secrets_ok and prompts_loaded:
     # --- Streamlit App Main UI ---
     st.title("🤖 AIバナーラフ生成プロトタイプ (GPT-4o Ver.)")
     st.write("構成案の画像とテキスト指示から、AIがバナーラフ画像を生成します。")
+
+    # --- Task 2.2: テキスト描画テスト用コード ---
+    # (このテストコードは、次のステップで追加・実行します)
+    # st.divider()
+    # st.subheader("【Task 2.2: テキスト描画テスト】")
+    # if st.button("テスト実行: 日本語描画"):
+    #    # ... (テストコード) ...
+    # st.divider()
+    # --- Task 2.2: ここまで ---
+
 
     col1, col2 = st.columns(2)
     with col1:
@@ -242,4 +269,3 @@ elif not prompts_loaded:
 elif not secrets_ok:
      st.warning("アプリの初期化中にSecrets関連で問題が発生したため、UIを表示できません。ログやSecrets設定を確認してください。")
 
-```
