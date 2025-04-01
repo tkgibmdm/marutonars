@@ -121,6 +121,59 @@ if secrets_ok and prompts_loaded:
             st.error(f"DALL-E 3 APIエラー: {e}")
             return None
 
+    # --- API Function Definitions ---
+    # (if secrets_ok and prompts_loaded: のブロック内に追加)
+
+    # ... (既存の analyze_layout_with_gpt4o, generate_dalle_prompt_with_gpt4o, generate_image_with_dalle3 関数定義) ...
+
+    # ▼▼▼ 新しいテキスト描画関数 ▼▼▼
+    def add_text_to_image(image, text, position, font_path, font_size, text_color=(0, 0, 0, 255)):
+        """
+        Pillowを使って画像にテキストを描画する関数
+
+        Args:
+            image (PIL.Image.Image): テキストを描画する対象のPillow Imageオブジェクト
+            text (str): 描画するテキスト文字列 (日本語含む)
+            position (tuple): テキストを描画する左上の座標 (x, y)
+            font_path (str): 使用するフォントファイルのパス (例: "fonts/NotoSansJP-Regular.otf")
+            font_size (int): フォントサイズ
+            text_color (tuple): テキストの色 (R, G, B, Alpha)。デフォルトは黒。
+
+        Returns:
+            PIL.Image.Image: テキストが描画されたPillow Imageオブジェクト
+            None: エラーが発生した場合
+        """
+        try:
+            # 画像をRGBAモードに変換 (アルファチャンネルを扱えるように)
+            base = image.convert("RGBA")
+            # テキスト描画用のレイヤーを作成 (透明)
+            txt_layer = Image.new("RGBA", base.size, (255, 255, 255, 0))
+
+            # フォントを読み込む
+            try:
+                font = ImageFont.truetype(font_path, font_size)
+            except IOError:
+                st.error(f"エラー: 指定されたフォントファイルが見つからないか、読み込めません: {font_path}")
+                # 代替フォントを使うか、エラーを返す (ここではNoneを返す)
+                # 注意: Streamlit Cloudの基本環境には日本語フォントは含まれていない可能性が高い
+                return None
+
+            # 描画オブジェクトを作成
+            draw = ImageDraw.Draw(txt_layer)
+
+            # 指定された位置にテキストを描画
+            draw.text(position, text, font=font, fill=text_color)
+
+            # 元の画像にテキストレイヤーを合成
+            out = Image.alpha_composite(base, txt_layer)
+            return out.convert("RGB") # 必要に応じてRGBに戻す (アルファ不要な場合)
+
+        except Exception as e:
+            st.error(f"テキスト描画中にエラーが発生しました: {e}")
+            return None
+    # ▲▲▲ 新しいテキスト描画関数 ▲▲▲
+
+
     # --- Streamlit App Main UI ---
     st.title("🤖 AIバナーラフ生成プロトタイプ (GPT-4o Ver.)")
     st.write("構成案の画像とテキスト指示から、AIがバナーラフ画像を生成します。")
