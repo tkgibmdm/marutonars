@@ -1,6 +1,5 @@
 streamlit
-google-generativeai
 openai
-requests
 Pillow
-matplotlib
+google-generativeai # まだ使う可能性を考慮し残す
+google-cloud-aiplatform # ← これを追加
