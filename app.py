@@ -33,9 +33,9 @@ dalle_instruction_template_text = load_prompt("prompts/dalle_prompt_instruction_
 prompts_loaded = layout_analysis_prompt_text is not None and dalle_instruction_template_text is not None
 
 # --- Load API Keys & GCP Config ---
-secrets_ok = False
-GCP_PROJECT_ID = my-project-marutonars
-GCP_REGION = us-central1
+secrets_ok = true
+GCP_PROJECT_ID = "my-project-marutonars"
+GCP_REGION = "us-central1"
 OPENAI_API_KEY = None
 
 if prompts_loaded:
