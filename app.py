@@ -34,8 +34,8 @@ prompts_loaded = layout_analysis_prompt_text is not None and dalle_instruction_t
 
 # --- Load API Keys & GCP Config ---
 secrets_ok = False
-GCP_PROJECT_ID = None
-GCP_REGION = None
+GCP_PROJECT_ID = my-project-marutonars
+GCP_REGION = us-central1
 OPENAI_API_KEY = None
 
 if prompts_loaded:
@@ -235,3 +235,4 @@ if secrets_ok and prompts_loaded:
 # --- Error handling for failed prompt/secret loading ---
 elif not prompts_loaded: st.error("プロンプト読込失敗。")
 elif not secrets_ok: st.warning("Secrets関連で問題発生。")
+
